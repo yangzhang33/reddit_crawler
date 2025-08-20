@@ -1,0 +1,41 @@
+# Reddit Greek Content Crawler Configuration
+
+# Subreddits to crawl
+subreddits:
+  - "greece"
+  # Add more subreddits as needed:
+  # - "athens"
+  # - "thessaloniki"
+  # - "cyprus"
+
+# Crawling parameters
+crawling:
+  listing: "new"          # Options: "new", "top", "hot", "rising"
+  timefilter: "all"       # For top listing: "day", "week", "month", "year", "all"
+  post_limit: null         # Number of posts to crawl per subreddit (null for unlimited)
+  post_sleep: 0.4         # Delay between posts to avoid rate limiting
+
+# Language filtering
+language:
+  # Comment-level filtering
+  filter_greek_comments: true
+  
+  # Post-level filtering
+  require_greek_title: false
+  require_greek_op: false
+  title_min_greek_ratio: 0.30
+
+# Output settings
+output:
+  base_dir: "reddit_greek_dump"
+  buffer_size: 2000       # Write to disk every N comments
+
+# Reddit API credentials (set via environment variables)
+reddit_api:
+  client_id_env: "REDDIT_CLIENT_ID"
+  client_secret_env: "REDDIT_CLIENT_SECRET"
+  user_agent_env: "REDDIT_USER_AGENT"
+  request_timeout: 30
+
+# Default user agent if not set in environment
+default_user_agent: "greek-subreddits-miner:v2.0 (by u/YOURUSER)"

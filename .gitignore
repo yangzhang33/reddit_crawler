@@ -1,0 +1,35 @@
+# Reddit Crawler - Git Ignore File
+
+# Sensitive credentials file
+setup
+
+# Crawler results and data
+reddit_greek_dump/
+
+# Python cache
+__pycache__/
+
+# macOS system files
+.DS_Store
+
+# IDE history
+.history/
+
+# Log files (generated during runs)
+*.log
+
+# State files (generated during runs)
+visited_posts.txt
+
+# Data output files (generated during runs)
+*.jsonl
+*.parquet
+
+# Virtual environment (if created)
+venv/
+.env
+
+# Temporary and backup files
+*.tmp
+*.bak
+*~
