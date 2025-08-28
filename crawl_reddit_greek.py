@@ -148,9 +148,10 @@ class GreekRedditCrawler:
         # Build folder name components
         components = [f"run_{self.run_id}", subs_str, listing]
         
-        # Add timefilter if it's not the default "all" for top listings
-        if listing == "top" and timefilter != "all":
-            components.append(timefilter)
+        # Add timefilter label for listings that support it (include 'all')
+        if listing in ("top", "controversial"):
+            if timefilter is not None:
+                components.append(timefilter)
             
         # Add post limit if it's not unlimited (None)
         if post_limit is not None:

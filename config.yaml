@@ -2,7 +2,37 @@
 
 # Subreddits to crawl
 subreddits:
-  - "greece"
+  # - thessaloniki
+  # - cyprus
+  # - crete
+  # - athina
+  # - GreekFooty
+  - AEKAthensFC
+  # - OlympiakosFC
+  # - Panathinaikos
+  # - PAOK
+  # - OlympiacosBC
+  # - AEKAthensBC
+  # - pao
+  # - kke
+  # - KriAnekdota
+  # - greekmusic
+  # - greekgaming
+  # - boardgamegreek
+  # - GreekFiction
+  # - greekmovies
+  # - LeGreekYoutube
+  # - greektv
+  # - LeagueOfLegendsGR
+  # - StreetViewGreece
+  # - greekfood
+  # - Greek_Food
+  # - Greekyogurt
+  # - greececirclejerk
+  # - ShitGreeceSays
+  # - greekreddit
+  # - Bitcoin_greece
+  # - frappe
   # Add more subreddits as needed:
   # - "athens"
   # - "thessaloniki"
@@ -10,8 +40,8 @@ subreddits:
 
 # Crawling parameters
 crawling:
-  listing: "new"          # Options: "new", "top", "hot", "rising"
-  timefilter: "all"       # For top listing: "day", "week", "month", "year", "all"
+  listing: "controversial"          # Options: "new", "top", "hot", "rising" "best", "controversial"
+  timefilter: "hour"       # For top listing: "hour", "day", "week", "month", "year", "all"
   post_limit: null         # Number of posts to crawl per subreddit (null for unlimited)
   post_sleep: 0.4         # Delay between posts to avoid rate limiting
 

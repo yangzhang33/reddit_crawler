@@ -44,6 +44,62 @@ A sophisticated Python crawler for collecting Greek content from Reddit using th
    ```
 3. **Find your results** in the `reddit_greek_dump/run_YYYYMMDD_HHMMSS_<uuid>/` directory
 
+### Maximize Coverage (Batch Orchestrator)
+
+Reddit's API limits each listing to roughly 1k items. To maximize coverage, a simple batch orchestrator runs the existing crawler multiple times per subreddit using different listing/timefilter combinations while de-duplicating posts across runs per subreddit.
+
+Run it with your existing `config.yaml`:
+
+```bash
+python batch_crawl_reddit.py --config config.yaml
+```
+
+What it does:
+- Runs per-subreddit, sequentially, keeping subreddits separate
+- Cycles through combinations: `new`, `hot`, `rising`, `best`, `top:{hour,day,week,month,year,all}`, `controversial:{hour,day,week,month,year,all}`
+- Shares a cumulative visited set per subreddit to avoid reprocessing the same post
+- Leaves the original crawler code untouched
+
+Failure handling:
+- Each combo runs independently. If a combo fails, the batch continues to the next one and records the failure in `<subreddit>/batch_metadata.json`.
+
+Customize combinations:
+
+```bash
+# Only specific combinations
+python batch_crawl_reddit.py --config config.yaml --combos new top:month top:all
+
+# Per-run limits are read from config: set `crawling.post_limit` in config.yaml
+```
+
+Outputs remain organized by the original crawler. Additionally, a persistent visited file per subreddit is kept at `reddit_greek_dump/orchestrator_visited/<subreddit>_visited_posts.txt` to coordinate de-duplication across batch runs.
+ 
+### Batch Output Structure
+
+When using `batch_crawl_reddit.py`, outputs are grouped per subreddit:
+
+```
+reddit_greek_dump/
+├── greece/
+│   ├── config_used.yaml
+│   ├── visited_posts.txt           # cumulative across all combos
+│   ├── batch_metadata.json         # summary for all runs/combos
+│   └── runs/
+│       ├── combined/
+│       │   └── comments.jsonl      # aggregated across all runs (deduped by comment_id)
+│       ├── run_20250821_230523_397a4ebc_greece_new/
+│       │   ├── comments.jsonl
+│       │   ├── comments.parquet
+│       │   ├── visited_posts.txt   # run-local; merged into subreddit-level visited
+│       │   ├── crawler.log
+│       │   └── metadata.json
+│       └── run_...
+└── athens/
+    └── ...
+```
+
+The `runs/combined/comments.jsonl` aggregates all per-run `comments.jsonl` files for the subreddit and removes duplicates based on `comment_id`. A summary of the combination (total read and unique written) is recorded in `<subreddit>/batch_metadata.json`.
+
 ## Configuration
 
 The crawler uses a YAML configuration file (`config.yaml`) for all settings. Here's a detailed breakdown of all configuration options:

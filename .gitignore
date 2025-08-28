@@ -5,6 +5,7 @@ setup
 
 # Crawler results and data
 reddit_greek_dump/
+.batch_tmp_configs/
 
 # Python cache
 __pycache__/
