@@ -1,6 +1,20 @@
 # Changelog
 
 All notable changes to the Greek Reddit Content Crawler will be documented in this file.
+## [2.1.0] - 2025-08-21
+
+### Added
+- Batch orchestrator `batch_crawl_reddit.py` to maximize post coverage per subreddit
+  - Runs the existing crawler across multiple listing/timefilter combinations
+  - De-duplicates posts per subreddit via a shared visited set
+  - Organizes outputs under `output.base_dir/<subreddit>/`, including:
+    - `config_used.yaml`, `visited_posts.txt`, `batch_metadata.json`, and per-run folders in `runs/`
+  - Keeps subreddits separate and leaves the core crawler code unchanged
+  - Supports custom combinations via `--combos`; post limits are read from config
+  - Adds `runs/combined/comments.jsonl` per subreddit, deduplicated by `comment_id`
+  - Extends default batch combos to include: `new`, `hot`, `rising`, `best`, `top:{hour,day,week,month,year,all}`, `controversial:{hour,day,week,month,year,all}`
+  - Continues to next combo on failure and records per-combo status in `batch_metadata.json`
+
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
