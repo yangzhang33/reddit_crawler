@@ -119,8 +119,8 @@ subreddits:
 ### Crawling Parameters
 ```yaml
 crawling:
-  listing: "new"          # Options: "new", "top", "hot", "rising"
-  timefilter: "all"       # For top listing: "day", "week", "month", "year", "all"
+  listing: "new"          # Options: "new", "top", "hot", "rising", "best", "controversial"
+  timefilter: "all"       # For top and controversial listing: "hour", "day", "week", "month", "year", "all"
   post_limit: null        # Number of posts to crawl per subreddit (null for unlimited)
   post_sleep: 0.4         # Delay between posts to avoid rate limiting
 ```
@@ -131,13 +131,16 @@ crawling:
   - `"top"`: Highest scoring posts (use with `timefilter`)
   - `"hot"`: Currently trending posts
   - `"rising"`: Posts gaining traction quickly
+  - `"best"`: Reddit's best algorithm
+  - `"controversial"`: Highly debated posts (use with `timefilter`)
 
-- **`timefilter`**: Time period for "top" listings
-  - `"day"`: Top posts from last 24 hours
-  - `"week"`: Top posts from last week
-  - `"month"`: Top posts from last month
-  - `"year"`: Top posts from last year
-  - `"all"`: All-time top posts
+- **`timefilter`**: Time period for "top" and "controversial" listings
+  - `"hour"`: Last hour
+  - `"day"`: Last 24 hours
+  - `"week"`: Last week
+  - `"month"`: Last month
+  - `"year"`: Last year
+  - `"all"`: All-time
 
 - **`post_limit`**: Maximum posts per subreddit
   - `null` or `None`: No limit (crawl all available)

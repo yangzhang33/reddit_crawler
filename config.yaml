@@ -41,7 +41,7 @@ subreddits:
 # Crawling parameters
 crawling:
   listing: "controversial"          # Options: "new", "top", "hot", "rising" "best", "controversial"
-  timefilter: "hour"       # For top listing: "hour", "day", "week", "month", "year", "all"
+  timefilter: "hour"       # For top and controversial listing: "hour", "day", "week", "month", "year", "all"
   post_limit: null         # Number of posts to crawl per subreddit (null for unlimited)
   post_sleep: 0.4         # Delay between posts to avoid rate limiting
 
