@@ -29,7 +29,7 @@ from typing import List, Optional, Tuple, Dict, Any, Set
 import yaml
 from datetime import datetime
 
-from crawl_reddit_greek import GreekRedditCrawler
+from crawl_reddit import GreekRedditCrawler
 
 # Monkey-patch: extend supported listings without modifying core crawler file
 def _patched_get_posts_stream(self, subreddit, listing: str, timefilter: Optional[str], limit):
