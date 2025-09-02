@@ -4,7 +4,7 @@ Batch orchestrator to maximize posts per subreddit by combining multiple
 listing/timefilter runs of the existing crawler while de-duplicating posts.
 
 - Reads base settings from a config file (subreddits, language filters, etc.)
-- Runs the existing `GreekRedditCrawler` many times per subreddit with
+- Runs the existing `RedditCrawler` many times per subreddit with
   different (listing, timefilter) combinations
 - Shares a cumulative `visited_posts.txt` across runs for each subreddit to
   avoid processing the same post multiple times
@@ -29,7 +29,7 @@ from typing import List, Optional, Tuple, Dict, Any, Set
 import yaml
 from datetime import datetime
 
-from crawl_reddit import GreekRedditCrawler
+from crawl_reddit import RedditCrawler
 
 # Monkey-patch: extend supported listings without modifying core crawler file
 def _patched_get_posts_stream(self, subreddit, listing: str, timefilter: Optional[str], limit):
@@ -53,7 +53,7 @@ def _patched_get_posts_stream(self, subreddit, listing: str, timefilter: Optiona
 
 
 # Apply the monkey patch so batch runs can use extended listings
-GreekRedditCrawler.get_posts_stream = _patched_get_posts_stream
+RedditCrawler.get_posts_stream = _patched_get_posts_stream
 
 
 def load_base_config(path: Path) -> Dict[str, Any]:
@@ -132,7 +132,7 @@ def get_default_combinations() -> List[Tuple[str, Optional[str]]]:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Batch orchestrator for Greek Reddit crawler")
+    parser = argparse.ArgumentParser(description="Batch orchestrator for Reddit crawler")
     parser.add_argument("--config", default="config.yaml", help="Base configuration file path")
     # Post limit is read from the config under crawling.post_limit
     parser.add_argument(
@@ -169,7 +169,7 @@ def main():
         combos = get_default_combinations()
 
     tmp_cfg_dir = Path(".batch_tmp_configs")
-    base_output_dir = Path(base_cfg.get("output", {}).get("base_dir", "reddit_greek_dump"))
+    base_output_dir = Path(base_cfg.get("output", {}).get("base_dir", "reddit_dump"))
     base_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Announce plan
@@ -222,7 +222,7 @@ def main():
             )
 
             # Initialize crawler to discover run_dir, then seed visited before run
-            crawler = GreekRedditCrawler(str(tmp_cfg_path))
+            crawler = RedditCrawler(str(tmp_cfg_path))
             print(f"   Seeding visited into run dir ({len(cumulative_visited)} ids)")
             seed_visited(crawler.run_dir, cumulative_visited)
 

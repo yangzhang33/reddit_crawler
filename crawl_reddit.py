@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Crawl Greek subreddits via the official Reddit API and save *all comments*.
+Crawl subreddits via the official Reddit API and save *all comments*.
 - Configurable via YAML file
 - Resumable with run-specific folders (keeps a visited-posts state file)
 - Expands full comment trees (replace_more(limit=None))
 - Writes both JSONL and Parquet
 - Structured logging with run tracking
 - Language control:
-   * Post-level: require Greek title and/or OP (configurable)
-   * Comment-level: keep only Greek comments (configurable)
+   * Post-level: require specific language title and/or OP (configurable)
+   * Comment-level: keep only comments in specific language (configurable)
+   * Supports any language or no language filtering
 """
 
 import os
@@ -106,8 +107,8 @@ class RunMetadata:
         self.add_file(metadata_file)
 
 
-class GreekRedditCrawler:
-    """Main crawler class with structured logging and run management."""
+class RedditCrawler:
+    """Main crawler class with structured logging, run management, and language filtering."""
     
     def __init__(self, config_path: str = "config.yaml"):
         self.config = RedditCrawlerConfig(config_path)
@@ -118,8 +119,9 @@ class GreekRedditCrawler:
         self.reddit = None
         self.stop_flag = {"stop": False}
         
-        # Language detection patterns
-        self._greek_re = re.compile(r'[\u0370-\u03FF\u1F00-\u1FFF]')
+        # Language detection setup
+        self.target_language = self.config.get("language.target_language")
+        self._language_patterns = self._setup_language_patterns()
         
     def _generate_run_id(self) -> str:
         """Generate unique run ID using timestamp and UUID."""
@@ -161,7 +163,7 @@ class GreekRedditCrawler:
     
     def _setup_run_directory(self) -> Path:
         """Create run-specific directory structure with descriptive name."""
-        base_dir = Path(self.config.get("output.base_dir", "reddit_greek_dump"))
+        base_dir = Path(self.config.get("output.base_dir", "reddit_dump"))
         folder_name = self._generate_descriptive_folder_name()
         run_dir = base_dir / folder_name
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -222,32 +224,53 @@ class GreekRedditCrawler:
             requestor_kwargs={"timeout": self.config.get("reddit_api.request_timeout", 30)},
         )
         
-    def greek_char_ratio(self, text: str) -> float:
-        """Approximate ratio of Greek letters among alphabetic characters."""
-        if not text:
+    def _setup_language_patterns(self) -> dict:
+        """Setup language-specific character patterns for languages with unique scripts."""
+        patterns = {
+            "el": re.compile(r'[\u0370-\u03FF\u1F00-\u1FFF]'),  # Greek
+            "ru": re.compile(r'[\u0400-\u04FF]'),  # Cyrillic
+            "ar": re.compile(r'[\u0600-\u06FF]'),  # Arabic
+            "zh": re.compile(r'[\u4e00-\u9fff]'),  # Chinese
+            "ja": re.compile(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]'),  # Japanese
+            "ko": re.compile(r'[\uac00-\ud7af]'),  # Korean
+            "th": re.compile(r'[\u0e00-\u0e7f]'),  # Thai
+            "hi": re.compile(r'[\u0900-\u097f]'),  # Hindi/Devanagari
+        }
+        return patterns
+    
+    def language_char_ratio(self, text: str, language_code: str) -> float:
+        """Approximate ratio of language-specific letters among alphabetic characters."""
+        if not text or language_code not in self._language_patterns:
             return 0.0
-        greek = len(self._greek_re.findall(text))
+        pattern = self._language_patterns[language_code]
+        language_chars = len(pattern.findall(text))
         letters = sum(ch.isalpha() for ch in text)
-        return 0.0 if letters == 0 else greek / letters
+        return 0.0 if letters == 0 else language_chars / letters
 
-    def looks_greek(self, text: str) -> bool:
-        """Language check: try langdetect, fallback to Unicode range heuristic."""
-        if not text:
-            return False
+    def looks_target_language(self, text: str) -> bool:
+        """Language check: try langdetect, fallback to Unicode range heuristic for supported languages."""
+        if not text or not self.target_language:
+            return True  # No filtering if no target language set
+        
         try:
-            if detect(text) == "el":
+            if detect(text) == self.target_language:
                 return True
         except LangDetectException:
             pass
-        threshold = self.config.get("language.title_min_greek_ratio", 0.30)
-        return self.greek_char_ratio(text) >= threshold
+            
+        # Fallback to character ratio for languages with unique scripts
+        if self.target_language in self._language_patterns:
+            threshold = self.config.get("language.title_min_language_ratio", 0.30)
+            return self.language_char_ratio(text, self.target_language) >= threshold
+            
+        return False  # For languages without unique scripts, rely only on langdetect
 
-    def is_greek(self, text: str) -> bool:
-        """Comment-level check (langdetect only; short comments may be shaky)."""
-        if not text:
-            return False
+    def is_target_language(self, text: str) -> bool:
+        """Comment-level check (langdetect only; short comments may be unreliable)."""
+        if not text or not self.target_language:
+            return True  # No filtering if no target language set
         try:
-            return detect(text) == "el"
+            return detect(text) == self.target_language
         except LangDetectException:
             return False
             
@@ -310,7 +333,8 @@ class GreekRedditCrawler:
         timefilter = self.config.get("crawling.timefilter", "all")
         post_limit = self.config.get("crawling.post_limit", 100)
         
-        self.logger.info(f"Crawling r/{subreddit_name} ({listing}, timefilter={timefilter}, limit={post_limit})")
+        language_info = f" (language: {self.target_language})" if self.target_language else " (no language filter)"
+        self.logger.info(f"Crawling r/{subreddit_name} ({listing}, timefilter={timefilter}, limit={post_limit}){language_info}")
         
         posts_stream = self.get_posts_stream(subreddit, listing, timefilter, post_limit)
         
@@ -322,14 +346,14 @@ class GreekRedditCrawler:
                 continue
                 
             # Post-level language filtering
-            title_ok = self.looks_greek(submission.title or "")
-            if self.config.get("language.require_greek_title", True) and not title_ok:
+            title_ok = self.looks_target_language(submission.title or "")
+            if self.config.get("language.require_title_language", False) and not title_ok:
                 self.append_visited_post(submission.id)
                 continue
                 
-            if self.config.get("language.require_greek_op", False):
+            if self.config.get("language.require_op_language", False):
                 op_text = f"{submission.title or ''} {submission.selftext or ''}".strip()
-                if not self.looks_greek(op_text):
+                if not self.looks_target_language(op_text):
                     self.append_visited_post(submission.id)
                     continue
             
@@ -363,7 +387,7 @@ class GreekRedditCrawler:
                     continue
                     
                 body = comment.body or ""
-                if self.config.get("language.filter_greek_comments", True) and body and not self.is_greek(body):
+                if self.config.get("language.filter_comments_by_language", False) and body and not self.is_target_language(body):
                     continue
                     
                 comment_data = {
@@ -420,7 +444,8 @@ class GreekRedditCrawler:
     def run(self):
         """Main crawler execution."""
         try:
-            self.logger.info(f"Starting Reddit crawler run {self.run_id}")
+            language_info = f" with {self.target_language} language filtering" if self.target_language else " with no language filtering"
+            self.logger.info(f"Starting Reddit crawler run {self.run_id}{language_info}")
             self.logger.info(f"Output directory: {self.run_dir}")
             
             self._setup_signal_handler()
@@ -463,12 +488,12 @@ def main():
     """Entry point."""
     import argparse
     
-    parser = argparse.ArgumentParser(description="Crawl Greek Reddit content")
+    parser = argparse.ArgumentParser(description="Crawl Reddit content with optional language filtering")
     parser.add_argument("--config", default="config.yaml", 
                        help="Configuration file path (default: config.yaml)")
     args = parser.parse_args()
     
-    crawler = GreekRedditCrawler(args.config)
+    crawler = RedditCrawler(args.config)
     crawler.run()
 
 

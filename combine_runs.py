@@ -16,7 +16,7 @@ Outputs are written to `<input_root>/combined/`:
 - `summary.json`: simple stats and provenance
 
 Usage:
-  python combine_runs.py --root /absolute/path/to/reddit_greek_dump/run1
+  python combine_runs.py --root /absolute/path/to/reddit_dump/run1
 
 Notes:
 - This script does not modify existing runs.
@@ -146,7 +146,7 @@ def main():
     parser.add_argument(
         "--root",
         required=True,
-        help="Root directory containing run_* subdirectories (e.g., /abs/path/reddit_greek_dump/run1)",
+        help="Root directory containing run_* subdirectories (e.g., /abs/path/reddit_dump/run1)",
     )
     args = parser.parse_args()
 

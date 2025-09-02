@@ -1,10 +1,10 @@
-# Reddit Greek Content Crawler
+# Reddit Content Crawler
 
-A sophisticated Python crawler for collecting Greek content from Reddit using the official Reddit API. The crawler is designed to systematically collect posts and comments from Greek subreddits, with advanced language detection and filtering capabilities.
+A sophisticated Python crawler for collecting content from Reddit using the official Reddit API. The crawler is designed to systematically collect posts and comments from any subreddits, with advanced language detection and filtering capabilities for any language or no language filtering.
 
 ## Features
 
-- **🎯 Targeted Language Detection**: Advanced Greek language detection using both `langdetect` library and Unicode character analysis
+- **🎯 Flexible Language Detection**: Advanced language detection using `langdetect` library with Unicode character analysis for languages with unique scripts (Greek, Russian, Arabic, Chinese, Japanese, Korean, Thai, Hindi)
 - **📊 Dual Output Formats**: Saves data in both JSONL and Parquet formats for flexibility
 - **🔄 Resumable Crawling**: Maintains state to resume interrupted crawls without duplication
 - **📁 Run Management**: Organizes outputs in timestamped run folders with comprehensive metadata
@@ -40,9 +40,9 @@ A sophisticated Python crawler for collecting Greek content from Reddit using th
 1. **Configure the crawler** by editing `config.yaml` (see Configuration section below)
 2. **Run the crawler**:
    ```bash
-   python crawl_reddit_greek.py
+   python crawl_reddit.py
    ```
-3. **Find your results** in the `reddit_greek_dump/run_YYYYMMDD_HHMMSS_<uuid>/` directory
+3. **Find your results** in the `reddit_dump/run_YYYYMMDD_HHMMSS_<uuid>/` directory
 
 ### Maximize Coverage (Batch Orchestrator)
 
@@ -72,15 +72,15 @@ python batch_crawl_reddit.py --config config.yaml --combos new top:month top:all
 # Per-run limits are read from config: set `crawling.post_limit` in config.yaml
 ```
 
-Outputs remain organized by the original crawler. Additionally, a persistent visited file per subreddit is kept at `reddit_greek_dump/orchestrator_visited/<subreddit>_visited_posts.txt` to coordinate de-duplication across batch runs.
+Outputs remain organized by the original crawler. Additionally, a persistent visited file per subreddit is kept at `reddit_dump/orchestrator_visited/<subreddit>_visited_posts.txt` to coordinate de-duplication across batch runs.
  
 ### Batch Output Structure
 
 When using `batch_crawl_reddit.py`, outputs are grouped per subreddit:
 
 ```
-reddit_greek_dump/
-├── greece/
+reddit_dump/
+├── AskReddit/
 │   ├── config_used.yaml
 │   ├── visited_posts.txt           # cumulative across all combos
 │   ├── batch_metadata.json         # summary for all runs/combos
@@ -107,14 +107,14 @@ The crawler uses a YAML configuration file (`config.yaml`) for all settings. Her
 ### Subreddits Configuration
 ```yaml
 subreddits:
-  - "greece"
-  - "athens"
-  - "thessaloniki"
-  - "cyprus"
+  - "AskReddit"
+  - "news"
+  - "worldnews"
+  - "technology"
 ```
 - **Purpose**: List of subreddits to crawl
 - **Format**: Array of subreddit names (without "r/" prefix)
-- **Example**: `["greece", "athens"]` will crawl r/greece and r/athens
+- **Example**: `["AskReddit", "news"]` will crawl r/AskReddit and r/news
 
 ### Crawling Parameters
 ```yaml
@@ -151,41 +151,58 @@ crawling:
 ### Language Filtering
 ```yaml
 language:
-  filter_greek_comments: true    # Only keep Greek comments
-  require_greek_title: false     # Require Greek text in post titles
-  require_greek_op: false        # Require Greek text in original post content
-  title_min_greek_ratio: 0.30    # Minimum ratio of Greek characters for titles
+  # Target language for filtering (ISO 639-1 code, e.g., "en", "es", "fr", "el" for Greek)
+  # Set to null or empty string to disable language filtering
+  target_language: "en"  # "el" for Greek, "en" for English, "es" for Spanish, etc.
+  
+  # Comment-level filtering
+  filter_comments_by_language: true
+  
+  # Post-level filtering  
+  require_title_language: false
+  require_op_language: false
+  
+  # Minimum ratio of target language characters in title (for languages with unique scripts)
+  # Only used when target_language is set and the language has a unique character set
+  title_min_language_ratio: 0.30
 ```
 
 #### Language Detection Logic:
-- **Comment-level filtering** (`filter_greek_comments`):
-  - `true`: Only saves comments detected as Greek by `langdetect`
+
+- **`target_language`**: Target language for filtering
+  - Set to any ISO 639-1 language code ("en", "es", "fr", "el", "ru", "zh", etc.)
+  - Set to `null` to disable all language filtering
+  - Supports all languages recognized by `langdetect`
+
+- **Comment-level filtering** (`filter_comments_by_language`):
+  - `true`: Only saves comments detected as the target language
   - `false`: Saves all comments regardless of language
 
 - **Post-level filtering**:
-  - **`require_greek_title`**: Filters posts based on title language
-    - Uses both `langdetect` and Greek character ratio
-    - Falls back to Unicode analysis if `langdetect` fails
+  - **`require_title_language`**: Filters posts based on title language
+    - Uses `langdetect` with Unicode character analysis fallback
+    - For languages with unique scripts (Greek, Russian, Arabic, Chinese, etc.)
   
-  - **`require_greek_op`**: Filters based on original post content
+  - **`require_op_language`**: Filters based on original post content
     - Combines title and selftext for analysis
     - Useful for text posts with substantial content
 
-- **`title_min_greek_ratio`**: Threshold for Greek character detection
+- **`title_min_language_ratio`**: Threshold for character-based detection
   - Range: 0.0 to 1.0 (0% to 100%)
-  - `0.30` means 30% of alphabetic characters must be Greek
+  - `0.30` means 30% of alphabetic characters must be in the target language's script
+  - Only used for languages with unique character sets (Greek, Russian, Arabic, etc.)
   - Used as fallback when `langdetect` fails
 
 ### Output Settings
 ```yaml
 output:
-  base_dir: "reddit_greek_dump"  # Base directory for all runs
-  buffer_size: 2000              # Write to disk every N comments
+  base_dir: "reddit_dump"  # Base directory for all runs
+  buffer_size: 2000        # Write to disk every N comments
 ```
 
 - **`base_dir`**: Root directory for all crawler outputs
   - Each run creates a subdirectory with timestamp and parameters
-  - Example structure: `reddit_greek_dump/run_20241201_143022_a1b2c3d4_greece_new/`
+  - Example structure: `reddit_dump/run_20241201_143022_a1b2c3d4_AskReddit_new/`
 
 - **`buffer_size`**: Memory management for large crawls
   - Comments are buffered in memory before writing to disk
@@ -205,7 +222,7 @@ reddit_api:
 - **`request_timeout`**: Maximum time to wait for API responses
 - **Default User Agent**: Used if environment variable is not set
   ```yaml
-  default_user_agent: "greek-subreddits-miner:v2.0 (by u/YOURUSER)"
+  default_user_agent: "reddit-crawler:v2.0 (by u/YOURUSER)"
   ```
 
 ## Output Structure
@@ -213,14 +230,14 @@ reddit_api:
 Each crawler run creates a unique directory with the following structure:
 
 ```
-reddit_greek_dump/
-├── run_20241201_143022_a1b2c3d4_greece_new/
+reddit_dump/
+├── run_20241201_143022_a1b2c3d4_AskReddit_new/
 │   ├── comments.jsonl          # All comments in JSONL format
 │   ├── comments.parquet        # All comments in Parquet format
 │   ├── visited_posts.txt       # List of processed post IDs
 │   ├── crawler.log            # Detailed run logs
 │   └── metadata.json          # Run statistics and configuration
-└── run_20241201_150815_e5f6g7h8_athens_top_week/
+└── run_20241201_150815_e5f6g7h8_news_top_week/
     └── ...
 ```
 
@@ -267,20 +284,20 @@ Each comment record contains the following fields:
 ### Basic Crawling
 ```bash
 # Use default configuration
-python crawl_reddit_greek.py
+python crawl_reddit.py
 
 # Use custom configuration file
-python crawl_reddit_greek.py --config my_config.yaml
+python crawl_reddit.py --config my_config.yaml
 ```
 
 ### Configuration Examples
 
-#### Crawl Recent Posts from Multiple Subreddits:
+#### Crawl Recent English Posts from Multiple Subreddits:
 ```yaml
 subreddits:
-  - "greece"
-  - "athens"
-  - "thessaloniki"
+  - "AskReddit"
+  - "news"
+  - "technology"
 
 crawling:
   listing: "new"
@@ -288,14 +305,16 @@ crawling:
   post_sleep: 0.5
 
 language:
-  filter_greek_comments: true
-  require_greek_title: true
+  target_language: "en"
+  filter_comments_by_language: true
+  require_title_language: true
 ```
 
-#### Crawl Top Posts of the Week:
+#### Crawl Top Spanish Posts of the Week:
 ```yaml
 subreddits:
-  - "greece"
+  - "spain"
+  - "es"
 
 crawling:
   listing: "top"
@@ -303,24 +322,53 @@ crawling:
   post_limit: 100
 
 language:
-  filter_greek_comments: true
-  require_greek_title: false
-  require_greek_op: true
+  target_language: "es"
+  filter_comments_by_language: true
+  require_title_language: false
+  require_op_language: true
 ```
 
 #### Collect All Comments (Any Language):
 ```yaml
 subreddits:
-  - "greece"
+  - "AskReddit"
+  - "worldnews"
 
 crawling:
   listing: "hot"
   post_limit: 200
 
 language:
-  filter_greek_comments: false
-  require_greek_title: false
-  require_greek_op: false
+  target_language: null  # No language filtering
+  filter_comments_by_language: false
+  require_title_language: false
+  require_op_language: false
+```
+
+#### Language-Specific Examples:
+
+**Greek Content:**
+```yaml
+language:
+  target_language: "el"  # Greek
+  filter_comments_by_language: true
+  require_title_language: true
+```
+
+**French Content:**
+```yaml
+language:
+  target_language: "fr"  # French
+  filter_comments_by_language: true
+  require_title_language: false
+```
+
+**Chinese Content:**
+```yaml
+language:
+  target_language: "zh"  # Chinese
+  filter_comments_by_language: true
+  title_min_language_ratio: 0.50  # Higher threshold for character-based detection
 ```
 
 ## Advanced Features
@@ -365,8 +413,9 @@ Intelligent buffering system:
 
 1. **API Rate Limits**: Increase `post_sleep` value
 2. **Memory Issues**: Decrease `buffer_size` value  
-3. **Language Detection**: Adjust `title_min_greek_ratio`
+3. **Language Detection**: Adjust `title_min_language_ratio` or change `target_language`
 4. **Missing Comments**: Check API credentials and subreddit accessibility
+5. **No Language Filtering**: Set `target_language: null` to disable all language filters
 
 ## Dependencies
 

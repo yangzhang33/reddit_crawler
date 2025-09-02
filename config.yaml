@@ -1,42 +1,10 @@
-# Reddit Greek Content Crawler Configuration
+# Reddit Content Crawler Configuration
 
 # Subreddits to crawl
 subreddits:
-  # - thessaloniki
-  # - cyprus
-  # - crete
-  # - athina
-  # - GreekFooty
-  - AEKAthensFC
-  # - OlympiakosFC
-  # - Panathinaikos
-  # - PAOK
-  # - OlympiacosBC
-  # - AEKAthensBC
-  # - pao
-  # - kke
-  # - KriAnekdota
-  # - greekmusic
-  # - greekgaming
-  # - boardgamegreek
-  # - GreekFiction
-  # - greekmovies
-  # - LeGreekYoutube
-  # - greektv
-  # - LeagueOfLegendsGR
-  # - StreetViewGreece
-  # - greekfood
-  # - Greek_Food
-  # - Greekyogurt
-  # - greececirclejerk
-  # - ShitGreeceSays
-  # - greekreddit
-  # - Bitcoin_greece
-  # - frappe
-  # Add more subreddits as needed:
-  # - "athens"
-  # - "thessaloniki"
-  # - "cyprus"
+  - AskReddit
+  # - news
+  # - worldnews
 
 # Crawling parameters
 crawling:
@@ -47,17 +15,24 @@ crawling:
 
 # Language filtering
 language:
-  # Comment-level filtering
-  filter_greek_comments: true
+  # Target language for filtering (ISO 639-1 code, e.g., "en", "es", "fr", "el" for Greek)
+  # Set to null or empty string to disable language filtering
+  target_language: en  # "el" for Greek, "en" for English, etc.
   
-  # Post-level filtering
-  require_greek_title: false
-  require_greek_op: false
-  title_min_greek_ratio: 0.30
+  # Comment-level filtering
+  filter_comments_by_language: true
+  
+  # Post-level filtering  
+  require_title_language: true
+  require_op_language: false
+  
+  # Minimum ratio of target language characters in title (for languages with unique scripts)
+  # Only used when target_language is set and the language has a unique character set
+  title_min_language_ratio: 0.30
 
 # Output settings
 output:
-  base_dir: "reddit_greek_dump"
+  base_dir: "reddit_dump"
   buffer_size: 2000       # Write to disk every N comments
 
 # Reddit API credentials (set via environment variables)
@@ -68,4 +43,4 @@ reddit_api:
   request_timeout: 30
 
 # Default user agent if not set in environment
-default_user_agent: "greek-subreddits-miner:v2.0 (by u/YOURUSER)"
+default_user_agent: "reddit-crawler:v2.0 (by u/YOURUSER)"
